@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Impostor</title>
+<style>
+:root{
+  --bg:#080d20; --panel:#111936; --panel2:#182348;
+  --blue:#4da3ff; --purple:#9b6cff; --text:#f4f7ff;
+  --muted:#aab5d6; --red:#ff5577; --green:#55e6a5;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; font-family:system-ui,Segoe UI,Arial,sans-serif;
+  background:radial-gradient(circle at top,#1a2450 0,#080d20 55%);
+  color:var(--text); display:flex; justify-content:center; padding:18px;
+}
+.app{width:100%;max-width:760px}
+header{text-align:center;margin:12px 0 20px}
+.logo{font-size:42px;font-weight:900;letter-spacing:2px}
+.subtitle{color:var(--muted)}
+.screen{display:none;animation:fade .2s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.card{
+ background:rgba(17,25,54,.94); border:1px solid #293661; border-radius:22px;
+ padding:22px; box-shadow:0 15px 45px #0004; margin-bottom:16px
+}
+h2,h3{margin-top:0}
+button,input,select{font:inherit}
+button{
+ border:0;border-radius:14px;padding:13px 17px;cursor:pointer;
+ color:white;background:linear-gradient(135deg,var(--blue),var(--purple));
+ font-weight:750;transition:.15s; margin:5px 0
+}
+button:hover{transform:translateY(-1px);filter:brightness(1.08)}
+button.secondary{background:#293661}
+button.danger{background:linear-gradient(135deg,#ff5577,#b52e60)}
+button.good{background:linear-gradient(135deg,#31c98b,#208c9e)}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.full{width:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
+.choice{background:#1b274b;border:1px solid #334576;text-align:left;min-height:75px}
+.choice.selected{outline:3px solid var(--blue);background:#243b70}
+.choice small{display:block;color:var(--muted);font-weight:500;margin-top:4px}
+label{display:block;color:var(--muted);margin:13px 0 6px}
+input,select{
+ width:100%;padding:12px;border-radius:12px;border:1px solid #3a4a78;
+ background:#0b122b;color:white;outline:none
+}
+.player-row{display:flex;gap:8px;margin:8px 0}
+.player-row input{flex:1}
+.info{background:#0d1633;border-left:4px solid var(--blue);padding:12px;border-radius:10px;color:#dce5ff}
+.role{
+ text-align:center;padding:25px;border-radius:18px;background:#0b122b;
+ border:1px solid #334576;margin:15px 0
+}
+.role .big{font-size:34px;font-weight:900;margin:10px 0}
+.secret{font-size:25px;color:var(--blue);font-weight:900}
+.timer{font-size:42px;font-weight:900;text-align:center;color:var(--green)}
+.status{text-align:center;color:var(--muted);min-height:24px}
+.vote-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1a2547;padding:10px 12px;border-radius:12px;margin:8px 0}
+.vote-row button{margin:0}
+.badge{display:inline-block;background:#2a3967;border-radius:999px;padding:5px 10px;font-size:12px;color:#d9e3ff}
+.hidden{display:none!important}
+footer{text-align:center;color:#7785ae;font-size:12px;margin:20px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">🕵️ EL IMPOSTOR</div>
+  <div class="subtitle">¿Quién podrá descubrir la palabra secreta?</div>
+</header>
+
+<section id="menu" class="screen active">
+  <div class="card">
+    <h2>🎮 Menú principal</h2>
+    <p class="subtitle">Un juego de deducción para jugar con tus amigos.</p>
+    <button class="full" onclick="show('setup')">▶️ JUGAR</button>
+    <button class="full secondary" onclick="show('rules')">📖 CÓMO JUGAR</button>
+  </div>
+</section>
+
+<section id="rules" class="screen">
+ <div class="card">
+  <h2>📖 Cómo jugar</h2>
+  <ol>
+   <li>Elegí la cantidad de jugadores y escribí sus nombres.</li>
+   <li>Elegí una categoría y si el impostor recibirá una pista.</li>
+   <li>Cada jugador verá su información secreta por turnos.</li>
+   <li>Hablen sobre la palabra sin decirla directamente.</li>
+   <li>Cuando quieran, pulsen <b>Votar</b>.</li>
+   <li>Si eliminan al impostor, ganan los demás. Si quedan solo dos jugadores, gana el impostor.</li>
+  </ol>
+  <button class="full" onclick="show('menu')">⬅️ VOLVER</button>
+ </div>
+</section>
+
+<section id="setup" class="screen">
+ <div class="card">
+  <h2>⚙️ Preparar partida</h2>
+  <label for="count">Cantidad de jugadores (3 a 12)</label>
+  <input id="count" type="number" min="3" max="12" value="5" onchange="renderPlayers()">
+  <div id="players"></div>
+  <label>¿El impostor recibe una pista?</label>
+  <div class="grid">
+   <button id="hintYes" class="choice selected" onclick="setHint(true)">💡 Sí<small>Recibe una pista.</small></button>
+   <button id="hintNo" class="choice" onclick="setHint(false)">🤫 No<small>Solo sabe que es impostor.</small></button>
+  </div>
+  <label>Elegí una categoría</label>
+  <div class="grid" id="categories"></div>
+  <div id="subcategories" class="hidden"></div>
+  <button class="full" onclick="startGame()">🚀 COMENZAR</button>
+  <button class="full secondary" onclick="show('menu')">⬅️ VOLVER</button>
+ </div>
+</section>
+
+<section id="reveal" class="screen">
+ <div class="card">
+  <h2>🔐 Repartir información</h2>
+  <p id="revealInstruction" class="status"></p>
+  <div class="role">
+   <div id="revealName" class="badge"></div>
+   <div class="big">📩 Tu información</div>
+   <p id="revealText" class="secret">---</p>
+   <p id="revealExtra" class="subtitle"></p>
+  </div>
+  <button id="revealButton" class="full" onclick="nextReveal()">👀 Mostrar siguiente jugador</button>
+ </div>
+</section>
+
+<section id="game" class="screen">
+ <div class="card">
+  <h2>🗣️ Ronda de conversación</h2>
+  <div class="timer" id="timer">05:00</div>
+  <p class="status" id="gameStatus">Hablen y traten de descubrir al impostor.</p>
+  <div class="info" id="gameInfo"></div>
+  <button class="full danger" onclick="openVoting()">🗳️ VOTAR</button>
+ </div>
+</section>
+
+<section id="voting" class="screen">
+ <div class="card">
+  <h2>🗳️ Votación</h2>
+  <p class="subtitle">Elegí a quién querés eliminar. El jugador con más votos queda fuera.</p>
+  <div id="voteList"></div>
+  <button class="full" onclick="countVotes()">✅ CONFIRMAR VOTOS</button>
+  <button class="full secondary" onclick="resumeGame()">⬅️ VOLVER A LA RONDA</button>
+ </div>
+</section>
+
+<section id="result" class="screen">
+ <div class="card">
+  <h2 id="resultTitle">🏁 Resultado</h2>
+  <div class="role">
+   <div class="big" id="resultEmoji">🎭</div>
+   <p id="resultText"></p>
+  </div>
+  <button class="full" onclick="show('setup')">🔁 JUGAR OTRA VEZ</button>
+  <button class="full secondary" onclick="show('menu')">🏠 MENÚ</button>
+ </div>
+</section>
+
+<footer>El Impostor · versión web de prueba</footer>
+</div>
+
+<script>
+const data={
+ "⚽ Futbolistas":[
+  ["Cristiano Ronaldo","futbolista portugués"],["Lionel Messi","futbolista argentino"],
+  ["Kylian Mbappé","futbolista francés"],["Neymar","futbolista brasileño"],
+  ["Emiliano Martínez","arquero argentino"],["Karim Benzema","delantero francés"],
+  ["Erling Haaland","delantero noruego"],["Luka Modrić","mediocampista croata"]
+ ],
+ "🍥 Anime":{
+  "⚔️ Demon Slayer":[["Tanjiro Kamado","cazador de demonios"],["Nezuko Kamado","demonio que protege a su hermano"],["Zenitsu Agatsuma","cazador que usa técnicas de trueno"],["Inosuke Hashibira","cazador que usa una máscara de jabalí"],["Giyu Tomioka","Pilar del Agua"],["Shinobu Kocho","Pilar de los Insectos"],["Rengoku Kyojuro","Pilar de las Llamas"],["Muzan Kibutsuji","principal enemigo de la serie"]],
+  "🍥 Naruto":[["Naruto Uzumaki","ninja de Konoha"],["Sasuke Uchiha","ninja del clan Uchiha"],["Sakura Haruno","ninja médica"],["Kakashi Hatake","maestro del Equipo 7"],["Itachi Uchiha","hermano de Sasuke"],["Gaara","ninja de la Aldea de la Arena"],["Jiraiya","maestro de Naruto"],["Orochimaru","ninja relacionado con las serpientes"]],
+  "🐉 Dragon Ball":[["Goku","guerrero saiyajin"],["Vegeta","príncipe saiyajin"],["Gohan","hijo de Goku"],["Piccolo","guerrero de Namek"],["Bulma","inventora y amiga de Goku"],["Freezer","enemigo espacial"],["Trunks","guerrero del futuro"],["Majin Buu","ser rosado muy poderoso"]],
+  "☠️ One Piece":[["Monkey D. Luffy","capitán que quiere ser Rey de los Piratas"],["Roronoa Zoro","espadachín de la tripulación"],["Nami","navegante"],["Sanji","cocinero que pelea con las piernas"],["Usopp","tirador de la tripulación"],["Tony Tony Chopper","médico de la tripulación"],["Nico Robin","arqueóloga"],["Shanks","pirata pelirrojo"]]
+ },
+ "📺 Caricaturas":{
+  "🌲 Gravity Falls":[["Dipper Pines","gemelo curioso"],["Mabel Pines","gemela alegre"],["Stan Pines","dueño de la Cabaña del Misterio"],["Soos Ramirez","ayudante de la cabaña"],["Wendy Corduroy","amiga de Dipper"],["Bill Cipher","ser misterioso con forma de triángulo"]],
+  "🗡️ Hora de Aventuras":[["Finn","humano aventurero"],["Jake","perro amarillo que cambia de forma"],["Princesa Chicle","gobernante del Reino Dulce"],["Rey Helado","personaje con una corona mágica"],["Marceline","reina vampira"],["BMO","pequeño robot y consola"]],
+  "👊 Un Show Más":[["Mordecai","arrendajo azul"],["Rigby","mapache"],["Benson","jefe con cabeza de chicle"],["Skips","yetí trabajador"],["Musculoso","empleado del parque"],["Papaleta","personaje con forma de paleta"]],
+  "🦸 Los Jóvenes Titanes en Acción":[["Robin","líder de los Titanes"],["Raven","heroína con poderes oscuros"],["Starfire","heroína alienígena"],["Cyborg","héroe mitad robot"],["Beast Boy","héroe que se transforma en animales"],["Slade","enemigo de los Titanes"]],
+  "😂 El Chavo del 8":[["El Chavo","niño que vive en una vecindad"],["Quico","niño de la vecindad"],["La Chilindrina","amiga del Chavo"],["Don Ramón","padre de la Chilindrina"],["Doña Florinda","madre de Quico"],["Profesor Jirafales","maestro de la escuela"]],
+  "🐶 Scooby-Doo":[["Scooby-Doo","perro que resuelve misterios"],["Shaggy","amigo de Scooby"],["Velma","detective con lentes"],["Daphne","integrante del grupo de detectives"],["Fred","líder del grupo"],["Scrappy-Doo","pequeño perro valiente"]]
+ },
+ "👤 Personajes":[["Harry Potter","joven mago"],["Spider-Man","héroe que trepa paredes"],["Batman","héroe de Gotham"],["Superman","héroe de otro planeta"],["Mario","personaje de videojuegos"],["Sonic","erizo azul veloz"],["Pikachu","criatura eléctrica"],["Link","héroe de Hyrule"]],
+ "🎲 Random":[["auto","vehículo con ruedas"],["teléfono","objeto para comunicarse"],["pelota","objeto redondo para jugar"],["pizza","comida redonda con queso"],["árbol","planta grande con tronco"],["silla","objeto para sentarse"],["casa","lugar donde vive una persona"],["lápiz","objeto para escribir"],["lentes","objeto que se usa en los ojos"],["gato","animal doméstico"],["bicicleta","vehículo de dos ruedas"],["mochila","objeto para llevar cosas"],["helado","postre frío"],["reloj","objeto que muestra la hora"]]
+};
+
+let hint=true, category="⚽ Futbolistas", subcategory=null, players=[], alive=[], impostor="", target=null;
+let revealIndex=0, votes={}, timer=300, interval=null;
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function setHint(v){hint=v;document.getElementById('hintYes').classList.toggle('selected',v);document.getElementById('hintNo').classList.toggle('selected',!v);}
+function renderPlayers(){
+ let n=Math.max(3,Math.min(12,Number(document.getElementById('count').value)||5));
+ document.getElementById('count').value=n;
+ let box=document.getElementById('players');box.innerHTML='<label>Nom​bres de los jugadores</label>';
+ for(let i=0;i<n;i++){
+  let row=document.createElement('div');row.className='player-row';
+  row.innerHTML=`<input id="p${i}" placeholder="Jugador ${i+1}" value="${players[i]||''}">`;
+  box.appendChild(row);
+ }
+}
+function renderCategories(){
+ let box=document.getElementById('categories');box.innerHTML='';
+ Object.keys(data).forEach(k=>{
+  let b=document.createElement('button');b.className='choice'+(category===k?' selected':'');
+  b.innerHTML=k+(typeof data[k]==='object'&&!Array.isArray(data[k])?'<small>Elegí una serie o anime</small>':'');
+  b.onclick=()=>{category=k;subcategory=null;renderCategories();renderSubs();};
+  box.appendChild(b);
+ });
+}
+function renderSubs(){
+ let box=document.getElementById('subcategories');
+ if(category==="🍥 Anime"||category==="📺 Caricaturas"){
+  box.classList.remove('hidden');box.innerHTML='<label>Elegí una serie</label><div class="grid" id="subgrid"></div>';
+  Object.keys(data[category]).forEach(k=>{
+   let b=document.createElement('button');b.className='choice'+(subcategory===k?' selected':'');b.textContent=k;
+   b.onclick=()=>{subcategory=k;renderSubs();};document.getElementById('subgrid').appendChild(b);
+  });
+ }else{box.classList.add('hidden');box.innerHTML='';}
+}
+function startGame(){
+ let n=Number(document.getElementById('count').value);
+ players=[];
+ for(let i=0;i<n;i++){let v=document.getElementById('p'+i).value.trim()||`Jugador ${i+1}`;players.push(v);}
+ if(new Set(players).size!==players.length){alert('Los nombres deben ser diferentes.');return;}
+ if((category==="🍥 Anime"||category==="📺 Caricaturas")&&!subcategory){alert('Elegí una serie o anime.');return;}
+ let list=(subcategory?data[category][subcategory]:data[category]);
+ target=list[Math.floor(Math.random()*list.length)];
+ impostor=players[Math.floor(Math.random()*players.length)];
+ alive=[...players];revealIndex=0;
+ document.getElementById('revealButton').textContent='👀 Mostrar información';
+ show('reveal');renderReveal();
+}
+function renderReveal(){
+ let name=players[revealIndex];
+ document.getElementById('revealInstruction').textContent=`Pasale el dispositivo a ${name}. Que nadie más mire.`;
+ document.getElementById('revealName').textContent=name;
+ document.getElementById('revealText').textContent='Tocá el botón para revelar';
+ document.getElementById('revealExtra').textContent='La información es secreta.';
+ document.getElementById('revealButton').textContent='👀 Mostrar información';
+ document.getElementById('revealButton').onclick=reveal;
+}
+function reveal(){
+ let name=players[revealIndex], isImp=name===impostor;
+ document.getElementById('revealText').textContent=isImp?'🎭 SOS EL IMPOSTOR':target[0];
+ document.getElementById('revealExtra').textContent=isImp?(hint?'💡 Pista: '+target[1]:'🤫 No recibís ninguna pista.'):'No digas la palabra directamente.';
+ document.getElementById('revealButton').textContent=revealIndex===players.length-1?'🚀 EMPEZAR RONDA':'➡️ Siguiente jugador';
+ document.getElementById('revealButton').onclick=()=>{
+  if(revealIndex===players.length-1){beginRound();}else{revealIndex++;renderReveal();}
+ };
+}
+function beginRound(){
+ timer=300;clearInterval(interval);interval=setInterval(tick,1000);
+ document.getElementById('gameInfo').textContent=`Categoría: ${subcategory||category}. Hablen por turnos y den pistas sin revelar la palabra.`;
+ show('game');
+}
+function tick(){
+ timer=Math.max(0,timer-1);let m=String(Math.floor(timer/60)).padStart(2,'0'),s=String(timer%60).padStart(2,'0');
+ document.getElementById('timer').textContent=m+':'+s;
+ if(timer===0){clearInterval(interval);document.getElementById('gameStatus').textContent='⏰ Se terminó el tiempo. ¡A votar!';}
+}
+function openVoting(){
+ clearInterval(interval);votes={};let box=document.getElementById('voteList');box.innerHTML='';
+ alive.forEach(p=>{
+  let row=document.createElement('div');row.className='vote-row';
+  row.innerHTML=`<span>${p}</span><button onclick="chooseVote('${p.replace(/'/g,"\\'")}')">Votar</button>`;
+  row.id='vote-'+p.replace(/\W/g,'');box.appendChild(row);
+ });
+ show('voting');
+}
+function chooseVote(p){votes[p]=(votes[p]||0)+1;document.querySelectorAll('.vote-row').forEach(r=>r.style.outline='none');let el=document.getElementById('vote-'+p.replace(/\W/g,''));if(el)el.style.outline='2px solid var(--blue)';window.selectedVote=p;}
+function countVotes(){
+ if(!window.selectedVote){alert('Elegí un jugador.');return;}
+ let eliminated=window.selectedVote;alive=alive.filter(p=>p!==eliminated);window.selectedVote=null;
+ if(eliminated===impostor){finish(true,eliminated);return;}
+ if(alive.length<=2){finish(false,eliminated);return;}
+ document.getElementById('gameStatus').textContent=`${eliminated} fue eliminado. El juego continúa.`;
+ beginRound();
+}
+function resumeGame(){beginRound();}
+function finish(caught,eliminated){
+ clearInterval(interval);show('result');
+ document.getElementById('resultEmoji').textContent=caught?'🎉':'🎭';
+ document.getElementById('resultTitle').textContent=caught?'🏆 ¡Ganaron los demás!':'🎭 ¡Ganó el impostor!';
+ document.getElementById('resultText').innerHTML=caught?
+ `El impostor era <b>${impostor}</b> y fue descubierto.<br>La palabra era <b>${target[0]}</b>.`:
+ `El impostor era <b>${impostor}</b>.<br>La palabra era <b>${target[0]}</b>.`;
+}
+renderPlayers();renderCategories();renderSubs();
+</script>
+</body>
+</html>
